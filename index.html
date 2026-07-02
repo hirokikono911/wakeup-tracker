@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>早く起きるやつ</title>
+<style>
+  :root {
+    --ok: #15A888;
+    --ng: #c62828;
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --border: #e0e0e0;
+    --text: #222;
+    --muted: #888;
+    --accent: #333;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 80px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .stats {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat .num {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .stat .label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .form-row label {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .form-row > div { flex: 1; }
+  input[type="date"], input[type="time"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:active { opacity: 0.8; }
+  .form-card > label {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .date-nav .date-label {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .quick-btn {
+    width: 100%;
+    padding: 18px 4px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+  .quick-btn.ok.selected {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: white;
+  }
+  h2 {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .month-nav .month-label {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  button.nav-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .calendar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 6px;
+  }
+  .weekday-row div {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .day-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    gap: 3px;
+    background: transparent;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .day-cell.empty { visibility: hidden; cursor: default; }
+  .day-cell .num { font-weight: 500; }
+  .day-cell .time {
+    font-size: 9px;
+    line-height: 1;
+    color: var(--muted);
+  }
+  .day-cell.ok { background: rgba(21,168,136,0.12); }
+  .day-cell.ok .time { color: var(--ok); font-weight: 600; }
+  .day-cell.selected { border-color: var(--accent); }
+
+  .monthly-rates {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .monthly-rate {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .monthly-rate .m-label {
+    font-size: 13px;
+    font-weight: 600;
+    width: 96px;
+    flex-shrink: 0;
+  }
+  .monthly-rate .m-label .cur {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  .monthly-rate .bar-track {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .monthly-rate .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .monthly-rate .m-rate {
+    font-size: 13px;
+    font-weight: 700;
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .monthly-rate .m-count {
+    font-size: 11px;
+    color: var(--muted);
+    width: 44px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .section { margin-bottom: 24px; }
+
+  .time-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg);
+    margin: 10px 0 16px;
+  }
+</style>
+</head>
+<body>
+  <h1>早く起きるやつ</h1>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="num" id="statStreak">0</div>
+      <div class="label">連続日数</div>
+    </div>
+    <div class="stat">
+      <div class="num" id="statTotal">0</div>
+      <div class="label">累計回数</div>
+    </div>
+    <div class="stat">
+      <div class="num" id="statMonthRate">0%</div>
+      <div class="label">達成率(今月)</div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="date-nav">
+      <button class="nav-btn" id="prevDay">‹</button>
+      <div class="date-label" id="dateLabel"></div>
+      <button class="nav-btn" id="nextDay">›</button>
+    </div>
+    <button id="quickOk" class="quick-btn ok">7:30前に起きた</button>
+
+    <select id="time" class="time-select"></select>
+  </div>
+
+  <div class="section">
+    <div class="month-nav">
+      <button class="nav-btn" id="prevMonth">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button class="nav-btn" id="nextMonth">›</button>
+    </div>
+    <div class="calendar">
+      <div class="weekday-row">
+        <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+      </div>
+      <div class="day-grid" id="dayGrid"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>月別達成率</h2>
+    <div class="monthly-rates" id="monthlyRates"></div>
+  </div>
+
+<script>
+const STORAGE_KEY = 'wakeup-tracker-entries';
+const GOAL_TIME = '07:30';
+const DEFAULT_OK_TIME = '07:00';
+
+let currentMonth = new Date();
+currentMonth.setDate(1);
+
+function buildTimeOptions() {
+  const times = [];
+  for (let h = 0; h < 24; h++) {
+    times.push(`${pad2(h)}:00`);
+    times.push(`${pad2(h)}:30`);
+  }
+  return times;
+}
+
+function renderTimePicker() {
+  const select = document.getElementById('time');
+  select.innerHTML = '';
+  for (const t of buildTimeOptions()) {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    select.appendChild(opt);
+  }
+  select.value = GOAL_TIME;
+}
+
+function loadEntries() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function shiftDate(dateStr, delta) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function fmtDateLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${days[d.getDay()]})`;
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function ymKey(year, month) {
+  return `${year}-${pad2(month + 1)}`;
+}
+
+function renderStats(entries) {
+  document.getElementById('statTotal').textContent = entries.length;
+
+  const entrySet = new Set(entries.map(e => e.date));
+  let streak = 0;
+  let cursor = todayStr();
+  if (!entrySet.has(cursor)) cursor = shiftDate(cursor, -1);
+  while (entrySet.has(cursor)) {
+    streak++;
+    cursor = shiftDate(cursor, -1);
+  }
+  document.getElementById('statStreak').textContent = streak;
+
+  const now = new Date();
+  const curYm = ymKey(now.getFullYear(), now.getMonth());
+  const daysSoFar = now.getDate();
+  const thisMonthEntries = entries.filter(e => e.date.startsWith(curYm));
+  const rate = Math.round(thisMonthEntries.length / daysSoFar * 100);
+  document.getElementById('statMonthRate').textContent = rate + '%';
+}
+
+function renderCalendar(entries) {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  document.getElementById('monthLabel').textContent = `${year}年 ${month + 1}月`;
+
+  const entryMap = {};
+  for (const e of entries) entryMap[e.date] = e;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const grid = document.getElementById('dayGrid');
+  grid.innerHTML = '';
+
+  for (let i = 0; i < firstDay; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell empty';
+    grid.appendChild(cell);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${pad2(month + 1)}-${pad2(d)}`;
+    const entry = entryMap[dateStr];
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    if (entry) cell.classList.add('ok');
+    if (dateStr === selectedDate) cell.classList.add('selected');
+    cell.dataset.date = dateStr;
+    cell.innerHTML = `<div class="num">${d}</div><div class="time">${entry ? entry.time : ''}</div>`;
+    grid.appendChild(cell);
+  }
+}
+
+const RATES_START_YEAR = 2026;
+const RATES_START_MONTH = 6; // 7月 (0-indexed)
+
+function renderMonthlyRates(entries) {
+  const container = document.getElementById('monthlyRates');
+  container.innerHTML = '';
+
+  const now = new Date();
+  const months = [];
+  let y = now.getFullYear();
+  let m = now.getMonth();
+  while (y > RATES_START_YEAR || (y === RATES_START_YEAR && m >= RATES_START_MONTH)) {
+    months.push({ year: y, month: m });
+    m -= 1;
+    if (m < 0) { m = 11; y -= 1; }
+  }
+
+  for (const { year, month } of months) {
+    const key = ymKey(year, month);
+    const monthEntries = entries.filter(e => e.date.startsWith(key));
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const isCurrent = year === now.getFullYear() && month === now.getMonth();
+    const daysElapsed = isCurrent ? now.getDate() : daysInMonth;
+    const rate = Math.round(monthEntries.length / daysElapsed * 100);
+
+    const row = document.createElement('div');
+    row.className = 'monthly-rate';
+    row.innerHTML = `
+      <div class="m-label">${year}年${month + 1}月${isCurrent ? '<span class="cur">今月</span>' : ''}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${rate}%"></div></div>
+      <div class="m-rate">${rate}%</div>
+      <div class="m-count">${monthEntries.length}/${daysElapsed}日</div>
+    `;
+    container.appendChild(row);
+  }
+}
+
+function render() {
+  const entries = loadEntries();
+  renderStats(entries);
+  renderCalendar(entries);
+  renderMonthlyRates(entries);
+}
+
+let selectedDate = todayStr();
+
+function saveEntry(date, time) {
+  const entries = loadEntries().filter(e => e.date !== date);
+  entries.push({ date, time });
+  saveEntries(entries);
+}
+
+function deleteEntry(date) {
+  saveEntries(loadEntries().filter(e => e.date !== date));
+}
+
+function refreshForm() {
+  const entry = loadEntries().find(e => e.date === selectedDate);
+  document.getElementById('dateLabel').textContent = fmtDateLabel(selectedDate);
+  document.getElementById('time').value = entry ? entry.time : DEFAULT_OK_TIME;
+  document.getElementById('quickOk').classList.toggle('selected', !!entry);
+
+  if (selectedDate.slice(0, 7) !== ymKey(currentMonth.getFullYear(), currentMonth.getMonth())) {
+    currentMonth = new Date(selectedDate + 'T00:00:00');
+    currentMonth.setDate(1);
+  }
+}
+
+function selectDate(dateStr) {
+  selectedDate = dateStr;
+  refreshForm();
+  renderCalendar(loadEntries());
+}
+
+renderTimePicker();
+refreshForm();
+
+document.getElementById('prevDay').addEventListener('click', () => {
+  selectDate(shiftDate(selectedDate, -1));
+});
+
+document.getElementById('nextDay').addEventListener('click', () => {
+  selectDate(shiftDate(selectedDate, 1));
+});
+
+document.getElementById('quickOk').addEventListener('click', () => {
+  const entry = loadEntries().find(e => e.date === selectedDate);
+  if (entry) {
+    deleteEntry(selectedDate);
+  } else {
+    saveEntry(selectedDate, document.getElementById('time').value);
+  }
+  refreshForm();
+  render();
+});
+
+document.getElementById('time').addEventListener('change', () => {
+  const entry = loadEntries().find(e => e.date === selectedDate);
+  if (entry) {
+    saveEntry(selectedDate, document.getElementById('time').value);
+    render();
+  }
+});
+
+document.getElementById('dayGrid').addEventListener('click', (ev) => {
+  const cell = ev.target.closest('.day-cell');
+  if (!cell || !cell.dataset.date) return;
+  selectDate(cell.dataset.date);
+});
+
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() - 1);
+  renderCalendar(loadEntries());
+});
+
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() + 1);
+  renderCalendar(loadEntries());
+});
+
+render();
+</script>
+</body>
+</html>
