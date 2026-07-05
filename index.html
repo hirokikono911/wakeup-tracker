@@ -195,6 +195,8 @@
   }
   .day-cell.ok { background: rgba(21,168,136,0.12); }
   .day-cell.ok .time { color: var(--ok); font-weight: 600; }
+  .day-cell.ng { background: rgba(198,40,40,0.08); }
+  .day-cell.ng .time { color: var(--ng); font-weight: 600; }
   .day-cell.selected { border-color: var(--accent); }
 
   .monthly-rates {
@@ -378,14 +380,18 @@ function ymKey(year, month) {
   return `${year}-${pad2(month + 1)}`;
 }
 
-function renderStats(entries) {
-  document.getElementById('statTotal').textContent = entries.length;
+function isSuccess(time) {
+  return time <= GOAL_TIME;
+}
 
-  const entrySet = new Set(entries.map(e => e.date));
+function renderStats(entries) {
+  document.getElementById('statTotal').textContent = entries.filter(e => isSuccess(e.time)).length;
+
+  const successSet = new Set(entries.filter(e => isSuccess(e.time)).map(e => e.date));
   let streak = 0;
   let cursor = todayStr();
-  if (!entrySet.has(cursor)) cursor = shiftDate(cursor, -1);
-  while (entrySet.has(cursor)) {
+  if (!successSet.has(cursor)) cursor = shiftDate(cursor, -1);
+  while (successSet.has(cursor)) {
     streak++;
     cursor = shiftDate(cursor, -1);
   }
@@ -394,8 +400,8 @@ function renderStats(entries) {
   const now = new Date();
   const curYm = ymKey(now.getFullYear(), now.getMonth());
   const daysSoFar = now.getDate();
-  const thisMonthEntries = entries.filter(e => e.date.startsWith(curYm));
-  const rate = Math.round(thisMonthEntries.length / daysSoFar * 100);
+  const thisMonthSuccesses = entries.filter(e => e.date.startsWith(curYm) && isSuccess(e.time));
+  const rate = Math.round(thisMonthSuccesses.length / daysSoFar * 100);
   document.getElementById('statMonthRate').textContent = rate + '%';
 }
 
@@ -424,7 +430,7 @@ function renderCalendar(entries) {
     const entry = entryMap[dateStr];
     const cell = document.createElement('div');
     cell.className = 'day-cell';
-    if (entry) cell.classList.add('ok');
+    if (entry) cell.classList.add(isSuccess(entry.time) ? 'ok' : 'ng');
     if (dateStr === selectedDate) cell.classList.add('selected');
     cell.dataset.date = dateStr;
     cell.innerHTML = `<div class="num">${d}</div><div class="time">${entry ? entry.time : ''}</div>`;
@@ -451,11 +457,11 @@ function renderMonthlyRates(entries) {
 
   for (const { year, month } of months) {
     const key = ymKey(year, month);
-    const monthEntries = entries.filter(e => e.date.startsWith(key));
+    const monthSuccesses = entries.filter(e => e.date.startsWith(key) && isSuccess(e.time));
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const isCurrent = year === now.getFullYear() && month === now.getMonth();
     const daysElapsed = isCurrent ? now.getDate() : daysInMonth;
-    const rate = Math.round(monthEntries.length / daysElapsed * 100);
+    const rate = Math.round(monthSuccesses.length / daysElapsed * 100);
 
     const row = document.createElement('div');
     row.className = 'monthly-rate';
@@ -463,7 +469,7 @@ function renderMonthlyRates(entries) {
       <div class="m-label">${year}年${month + 1}月${isCurrent ? '<span class="cur">今月</span>' : ''}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${rate}%"></div></div>
       <div class="m-rate">${rate}%</div>
-      <div class="m-count">${monthEntries.length}/${daysElapsed}日</div>
+      <div class="m-count">${monthSuccesses.length}/${daysElapsed}日</div>
     `;
     container.appendChild(row);
   }
@@ -492,7 +498,7 @@ function refreshForm() {
   const entry = loadEntries().find(e => e.date === selectedDate);
   document.getElementById('dateLabel').textContent = fmtDateLabel(selectedDate);
   document.getElementById('time').value = entry ? entry.time : DEFAULT_OK_TIME;
-  document.getElementById('quickOk').classList.toggle('selected', !!entry);
+  document.getElementById('quickOk').classList.toggle('selected', !!entry && isSuccess(entry.time));
 
   if (selectedDate.slice(0, 7) !== ymKey(currentMonth.getFullYear(), currentMonth.getMonth())) {
     currentMonth = new Date(selectedDate + 'T00:00:00');
@@ -519,21 +525,22 @@ document.getElementById('nextDay').addEventListener('click', () => {
 
 document.getElementById('quickOk').addEventListener('click', () => {
   const entry = loadEntries().find(e => e.date === selectedDate);
-  if (entry) {
+  if (entry && isSuccess(entry.time)) {
     deleteEntry(selectedDate);
   } else {
-    saveEntry(selectedDate, document.getElementById('time').value);
+    const time = entry && isSuccess(document.getElementById('time').value)
+      ? document.getElementById('time').value
+      : DEFAULT_OK_TIME;
+    saveEntry(selectedDate, time);
   }
   refreshForm();
   render();
 });
 
 document.getElementById('time').addEventListener('change', () => {
-  const entry = loadEntries().find(e => e.date === selectedDate);
-  if (entry) {
-    saveEntry(selectedDate, document.getElementById('time').value);
-    render();
-  }
+  saveEntry(selectedDate, document.getElementById('time').value);
+  refreshForm();
+  render();
 });
 
 document.getElementById('dayGrid').addEventListener('click', (ev) => {
