@@ -318,13 +318,19 @@ function buildTimeOptions() {
 function renderTimePicker() {
   const select = document.getElementById('time');
   select.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '時刻を選択';
+  placeholder.disabled = true;
+  select.appendChild(placeholder);
+
   for (const t of buildTimeOptions()) {
     const opt = document.createElement('option');
     opt.value = t;
     opt.textContent = t;
     select.appendChild(opt);
   }
-  select.value = GOAL_TIME;
 }
 
 function loadEntries() {
@@ -475,7 +481,7 @@ function saveEntry(date, time) {
 function refreshForm() {
   const entry = loadEntries().find(e => e.date === selectedDate);
   document.getElementById('dateLabel').textContent = fmtDateLabel(selectedDate);
-  document.getElementById('time').value = entry ? entry.time : GOAL_TIME;
+  document.getElementById('time').value = entry ? entry.time : '';
 
   if (selectedDate.slice(0, 7) !== ymKey(currentMonth.getFullYear(), currentMonth.getMonth())) {
     currentMonth = new Date(selectedDate + 'T00:00:00');
